@@ -2,6 +2,7 @@
 import * as vscode from 'vscode';
 import ZigCompilerProvider from './zigCompilerProvider';
 import { ZigFormatProvider, ZigRangeFormatProvider } from './zigFormat';
+import { ZigCompletionProvider } from './zigCompletion';
 
 const ZIG_MODE: vscode.DocumentFilter = { language: 'zig', scheme: 'file' };
 
@@ -26,6 +27,17 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.languages.registerDocumentRangeFormattingEditProvider(
             ZIG_MODE,
             new ZigRangeFormatProvider(logChannel),
+        ),
+    );
+
+    const compl_log = vscode.window.createOutputChannel('zig-complete');
+    compl_log.show()
+    // vscode.languages.registerHoverProvider for variable info !
+    context.subscriptions.push(
+        vscode.languages.registerCompletionItemProvider(
+            ZIG_MODE,
+            new ZigCompletionProvider(compl_log),
+            '.'
         ),
     );
 }
