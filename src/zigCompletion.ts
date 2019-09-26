@@ -42,8 +42,13 @@ export class ZigCompletionProvider implements
   vsc.DocumentSymbolProvider
 {
 
-  host = new ZigHost()
-  constructor(public log: vsc.OutputChannel) { }
+  public host!: ZigHost
+
+  constructor(public log: vsc.OutputChannel) {
+    const config = vsc.workspace.getConfiguration('zig');
+    const zigPath = config.get<string>('zigPath') || 'zig';
+    this.host = new ZigHost(zigPath)
+  }
 
   provideCompletionItems(doc: vsc.TextDocument, pos: vsc.Position, tok: vsc.CancellationToken) {
     const f = this.host.addFile(doc.fileName, doc.getText())

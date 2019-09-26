@@ -31,7 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const compl_log = vscode.window.createOutputChannel('zig-complete');
-    compl_log.show()
+    // compl_log.show()
     const cmpl = new ZigCompletionProvider(compl_log)
     // vscode.languages.registerHoverProvider for variable info !
     context.subscriptions.push(
