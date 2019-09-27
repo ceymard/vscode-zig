@@ -7,6 +7,7 @@ import * as pth from 'path'
 import * as fs from 'fs'
 import * as cp from 'child_process'
 
+
 // go to definition
 // completion provider
 // documentSymbolProvider
@@ -183,7 +184,7 @@ export class ZigHost {
   zigroot: string = ''
   librairies: {[name: string]: string} = {}
 
-  constructor(public zigpath: string, public ws_root: string) {
+  constructor(public zigpath: string, public ws_root: string, public log: (n: string) => any) {
     var path = zigpath && fs.existsSync(zigpath) && fs.statSync(zigpath).isFile() ? zigpath : w.sync('zig', {nothrow: true})
     if (path) {
       path = fs.realpathSync(path)

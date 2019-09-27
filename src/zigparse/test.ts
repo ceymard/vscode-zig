@@ -8,7 +8,7 @@ import { ZigHost } from '.'
 const is = (d: any, d2: any) => d.constructor === d2
 
 
-const host = new ZigHost('', process.cwd())
+const host = new ZigHost('', process.cwd(), console.error)
 
 
 const kw = [

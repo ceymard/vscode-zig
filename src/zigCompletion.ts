@@ -52,9 +52,9 @@ export class ZigCompletionProvider implements
     this.trylog(() => {
       const config = vsc.workspace.getConfiguration('zig');
       const zigPath = config.get<string>('zigPath') || 'zig';
-      this.log.appendLine(zigPath)
+      // this.log.appendLine(zigPath)
       // FIXME should use findproj
-      this.host = new ZigHost(zigPath, vsc.workspace.workspaceFolders![0].uri.fsPath)
+      this.host = new ZigHost(zigPath, vsc.workspace.workspaceFolders![0].uri.fsPath, n => this.log.appendLine('log: ' + n))
     })
   }
 

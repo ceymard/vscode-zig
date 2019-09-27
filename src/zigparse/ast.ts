@@ -46,10 +46,14 @@ const cimport = SeqObj({
 })
 
 
-const impor = S`@import ( ${T.STR} )`
-.map(s => (from_decl: Declaration) => {
+const impor = SeqObj({
+  _import: '@import',
+  lparent: '(',
+  pth: T.STR,
+  rparen: ')'
+}).map(({pth}) => (from_decl: Declaration) => {
   // ignore the previous declaration
-  var the_file = from_decl.file.host.getZigFile(from_decl.file.path, s.str.slice(1, -1))
+  var the_file = from_decl.file.host.getZigFile(from_decl.file.path, pth.str.replace(/"/g, ''))
   if (!the_file) return null
   return { pubs: true, decl: the_file.scope }
 })
@@ -193,20 +197,6 @@ export class VariableDeclaration extends Declaration {
     // look first at the type. If we find it, then return its definition.
     var typ = this.parent!.resolveExpression(this.type)
     if (typ) return typ.getMembers(true)
-
-    // if we didn't find a type, then we look at the value.
-
-    // First try to see if it's an import
-    if (this.value && this.value[0].is('@import')) {
-      var import_path = this.value![2].str.replace(/"/g, '')
-      var f = this.file.host.getZigFile(this.file.path, import_path)
-      if (!f) return []
-      this.doc = f.scope.doc // also import its documentation if any
-      return f.scope.getMembers().filter(d => d.is_public)
-    }
-
-    // then try to see if it's a cImport
-    // TODO
 
     // At last, just look at the value, try to resolve it and print its members.
     var val = this.parent!.resolveExpression(this.value)
