@@ -48,6 +48,13 @@ export function activate(context: vscode.ExtensionContext) {
             cmpl
         ),
     );
+
+    context.subscriptions.push(
+        vscode.languages.registerHoverProvider(
+            ZIG_MODE,
+            cmpl
+        )
+    );
 }
 
 export function deactivate() {

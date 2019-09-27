@@ -1,7 +1,7 @@
 
 import * as vsc from 'vscode'
 import { ZigHost } from 'zigparse'
-import { Declaration, VariableDeclaration, FunctionDeclaration, EnumDeclaration, FunctionArgumentDeclaration, StructDeclaration, ContainerDeclaration, MemberField } from 'zigparse/lib/ast'
+import { Declaration, VariableDeclaration, FunctionDeclaration, EnumDeclaration, FunctionArgumentDeclaration, StructDeclaration, ContainerDeclaration, MemberField, ErrorDeclaration, ErrorIdentifier, EnumMember } from 'zigparse/lib/ast'
 
 
 // Should also do
@@ -20,43 +20,63 @@ export function kind (decl: Declaration): vsc.CompletionItemKind {
     return k.Enum
   if (decl.is(StructDeclaration))
     return k.Struct
+  if (decl.is(ErrorDeclaration))
+    return k.Enum
+  if (decl.is(ErrorIdentifier))
+    return k.EnumMember
   return k.Value
 }
 
 const s = vsc.SymbolKind
+const sm = new Map<typeof Declaration, vsc.SymbolKind>()
+.set(VariableDeclaration, s.Variable)
+.set(FunctionDeclaration, s.Function)
+.set(FunctionArgumentDeclaration, s.Function)
+.set(EnumDeclaration, s.Enum)
+.set(EnumMember, s.EnumMember)
+.set(MemberField, s.Field)
+
 export function symbolkind (decl: Declaration): vsc.SymbolKind {
-  if (decl.is(VariableDeclaration))
-    return s.Variable
-  if (decl.is(FunctionDeclaration) || decl.is(FunctionArgumentDeclaration))
-    return s.Function
-  if (decl.is(EnumDeclaration))
-    return s.Enum
-  if (decl.is(StructDeclaration))
-    return s.Struct
-  if (decl instanceof MemberField)
-    return s.Field
-  return s.Null
+  return sm.get(decl.constructor as any) || s.Null
 }
 export class ZigCompletionProvider implements
   vsc.CompletionItemProvider,
-  vsc.DocumentSymbolProvider
+  vsc.DocumentSymbolProvider,
+  vsc.HoverProvider
 {
 
   public host!: ZigHost
 
   constructor(public log: vsc.OutputChannel) {
-    const config = vsc.workspace.getConfiguration('zig');
-    const zigPath = config.get<string>('zigPath') || 'zig';
-    this.host = new ZigHost(zigPath)
+    this.trylog(() => {
+      const config = vsc.workspace.getConfiguration('zig');
+      const zigPath = config.get<string>('zigPath') || 'zig';
+      this.log.appendLine(zigPath)
+      this.host = new ZigHost(zigPath)
+    })
+  }
+
+  trylog(fn: () => void) {
+    try {
+      fn()
+    } catch (e) {
+      this.log.appendLine(`error: ${e.message}`)
+      this.log.appendLine(`${e.stack}`)
+    }
   }
 
   provideCompletionItems(doc: vsc.TextDocument, pos: vsc.Position, tok: vsc.CancellationToken) {
     const f = this.host.addFile(doc.fileName, doc.getText())
     try {
       var res = f.getCompletionsAt(doc.offsetAt(pos))
+      // this.log.appendLine(`${res.length} completions`)
       if (res) {
         return res.map(decl => {
-          var cpl = new vsc.CompletionItem(decl.name, kind(decl))
+          var cpl = new vsc.CompletionItem(decl.fullName(), kind(decl))
+          cpl.insertText = decl.name
+          cpl.filterText = decl.name
+          cpl.documentation = decl.doc ? new vsc.MarkdownString(decl.doc) : ''
+          cpl.commitCharacters = ['.', ',', ')']
           return cpl
         })
       }
@@ -107,6 +127,17 @@ export class ZigCompletionProvider implements
       this.log.appendLine(`symbols error: ${e.message}`)
       return []
     }
+  }
+
+  provideHover(doc: vsc.TextDocument, pos: vsc.Position, token: vsc.CancellationToken): vsc.ProviderResult<vsc.Hover> {
+    const f = this.host.addFile(doc.fileName, doc.getText())
+    const offset = doc.offsetAt(pos)
+    var decl = f.getDeclarationAt(offset)
+    if (decl) {
+      var hov = new vsc.Hover(decl.fullName().replace(/\*/g, '\\*'))
+      return hov
+    }
+    return null
   }
 
 }
