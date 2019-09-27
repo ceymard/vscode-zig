@@ -1,7 +1,7 @@
 
 import * as vsc from 'vscode'
-import { ZigHost } from 'zigparse'
-import { Declaration, VariableDeclaration, FunctionDeclaration, EnumDeclaration, FunctionArgumentDeclaration, StructDeclaration, ContainerDeclaration, MemberField, ErrorDeclaration, ErrorIdentifier, EnumMember } from 'zigparse/lib/ast'
+import { ZigHost } from './zigparse'
+import { Declaration, VariableDeclaration, FunctionDeclaration, EnumDeclaration, FunctionArgumentDeclaration, StructDeclaration, ContainerDeclaration, MemberField, ErrorDeclaration, ErrorIdentifier, EnumMember } from './zigparse/ast'
 
 
 // Should also do
@@ -42,7 +42,8 @@ export function symbolkind (decl: Declaration): vsc.SymbolKind {
 export class ZigCompletionProvider implements
   vsc.CompletionItemProvider,
   vsc.DocumentSymbolProvider,
-  vsc.HoverProvider
+  vsc.HoverProvider,
+  vsc.DefinitionProvider
 {
 
   public host!: ZigHost
@@ -52,7 +53,8 @@ export class ZigCompletionProvider implements
       const config = vsc.workspace.getConfiguration('zig');
       const zigPath = config.get<string>('zigPath') || 'zig';
       this.log.appendLine(zigPath)
-      this.host = new ZigHost(zigPath)
+      // FIXME should use findproj
+      this.host = new ZigHost(zigPath, vsc.workspace.workspaceFolders![0].uri.fsPath)
     })
   }
 
@@ -140,4 +142,14 @@ export class ZigCompletionProvider implements
     return null
   }
 
+  provideDefinition(doc: vsc.TextDocument, pos: vsc.Position, tk: vsc.CancellationToken): vsc.ProviderResult<vsc.Definition> {
+    const f = this.host.addFile(doc.fileName, doc.getText())
+    const offset = doc.offsetAt(pos)
+    var decl = f.getDeclarationAt(offset)
+    if (!decl || decl.file.path === 'builtin') return null
+    return new vsc.Location(
+      vsc.Uri.file(decl.file.path),
+      new vsc.Position(decl.position.start.line, decl.position.start.col)
+    )
+  }
 }

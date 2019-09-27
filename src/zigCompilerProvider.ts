@@ -5,7 +5,7 @@ import * as cp from 'child_process';
 import * as vscode from 'vscode';
 
 export default class ZigCompilerProvider implements vscode.CodeActionProvider {
-    private diagnosticCollection: vscode.DiagnosticCollection;
+    private diagnosticCollection!: vscode.DiagnosticCollection;
 
     public activate(subscriptions: vscode.Disposable[]) {
         subscriptions.push(this);
@@ -36,20 +36,20 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         let decoded = ''
         let config = vscode.workspace.getConfiguration('zig');
         let buildOption = config.get<string>("buildOption");
-        let processArg: string[] = [buildOption];
+        let processArg: string[] = [buildOption!];
 
         switch (buildOption) {
             case "build":
                 let buildFilePath = config.get<string>("buildFilePath");
                 processArg.push("--build-file");
-                processArg.push(buildFilePath.replace("${workspaceFolder}", vscode.workspace.rootPath));
+                processArg.push(buildFilePath!.replace("${workspaceFolder}", vscode.workspace.rootPath!));
                 break;
             default:
                 processArg.push(textDocument.fileName);
                 break;
         }
 
-        let extraArgs = config.get<string[]>("buildArgs");
+        let extraArgs = config.get<string[]>("buildArgs") || [];
         extraArgs.forEach(element => {
             processArg.push(element);
         });

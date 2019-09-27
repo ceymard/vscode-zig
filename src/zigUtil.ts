@@ -34,7 +34,7 @@ export interface ExecutingCmd
   /** The process's stdin */
   stdin: NodeJS.WritableStream;
   /** End the process */
-  kill();
+  kill(): any;
   /** Is the process running */
   isRunning: boolean; // tslint:disable-line
 }
@@ -44,13 +44,13 @@ export function execCmd
   (cmd: string, options: ExecCmdOptions = {}): ExecutingCmd {
 
   const { fileName, onStart, onStdout, onStderr, onExit, cmdArguments } = options;
-  let childProcess, firstResponse = true, wasKilledbyUs = false;
+  let childProcess: any, firstResponse = true, wasKilledbyUs = false;
 
   const executingCmd: any = new Promise((resolve, reject) => {
     let cmdArguments = options ? options.cmdArguments : [];
 
     childProcess =
-      cp.exec(cmd + ' ' + (cmdArguments || []).join(' '), { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName') }, handleExit);
+      cp.exec(cmd + ' ' + (cmdArguments || []).join(' '), { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName') || undefined }, handleExit as any);
 
 
     childProcess.stdout.on('data', (data: Buffer) => {
@@ -136,10 +136,10 @@ export function findProj(dir: string, parent: string): string {
   return findProj(path.dirname(dir), dir)
 }
 
-export function detectProjectRoot(fileName: string): string {
+export function detectProjectRoot(fileName: string): string | null {
   const proj = findProj(path.dirname(fileName), '');
   if (proj !== '') {
     return proj;
   }
-  return undefined;
+  return null;
 }

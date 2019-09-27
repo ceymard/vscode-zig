@@ -35,7 +35,7 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
                 if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
                     logger.show(true)
                 }
-                return null;
+                return null!;
             });
     }
 }
@@ -74,7 +74,7 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
                 if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
                     logger.show(true)
                 }
-                return null;
+                return null!;
             });
     }
 }
