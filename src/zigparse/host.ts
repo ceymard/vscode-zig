@@ -130,6 +130,7 @@ export class File {
     // If the current token is a dot, then go backwards one step to get the preceding expression.
     // if it is not, then see if we're on an expression and that we want to potentially replace the current token.
     if (!lx.is('.')) return this.getDeclarationsAt(file_pos) || []
+    // FIXME should check .ident as well for completion
 
     const expr = resolvable_outer_expr.tryParse(lx.input_position - 1, this.lexer.lexed, -1)
     if (!expr) return []

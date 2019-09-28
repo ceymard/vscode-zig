@@ -13,6 +13,7 @@ const pub = Opt('pub')
 const comptime = Opt('comptime')
 const qualifiers = Either('var', 'const')
 const struct_qualifiers = Z(Either('packed', 'aligned')).map(mkset)
+const enum_qualifiers = Z(Either('extern', 'packed'))
 const func_qualifiers = Z(Either(
   S`extern ${Opt(T.STR)}`,
   'inline',
@@ -27,8 +28,6 @@ function set_position<T extends PositionedElement>(decl: T, start: Lexeme, end: 
 }
 
 const kw_constvar = Either('const', 'var')
-const kw_inline = Opt('inline')
-const kw_packed = Opt('packed')
 const kw_enum = 'enum'
 const kw_struct = 'struct'
 const kw_union = 'union'
@@ -204,6 +203,7 @@ const error_decl = SeqObj({
 
 //<<<<<<<<<<<<<<<<<<<<<<
 const enum_decl = SeqObj({
+  enum_qualifiers,
   kw_enum,
   opt_type: Opt(Balanced('(', any, ')')), // type of the enum
   declarations: Between('{', Either(
@@ -239,6 +239,29 @@ const struct_decl = SeqObj({
 .map(set_position)
 
 
+const union_decl = SeqObj({
+  struct_qualifiers,
+  kw_union,
+  opt_type: Opt(Balanced('(', any, ')')), // type of the enum
+  declarations: Between('{', Either(
+    () => container_decl,
+    func_decl,
+    var_decl,
+    container_field(MemberField)
+  ), '}')
+})
+//>>>>>>>>>>>>>>>>>>>>>>
+.map(({declarations}) => new UnionDeclaration()
+  .appendDeclarations(declarations)
+  .appendDeclarations(declarations.filter(m => m instanceof MemberField).map(v => {
+    return new VariableDeclaration()
+      .set('position', v.position)
+      .set('name', v.name)
+  }))
+)
+.map(set_position)
+
+
 //<<<<<<<<<<<<<<<<<<<<<<
 const container_decl: Rule<Declaration> = SeqObj({
   doc,
@@ -246,7 +269,7 @@ const container_decl: Rule<Declaration> = SeqObj({
   qualifiers,
   ident,
   _: '=',
-  obj: Either(struct_decl, enum_decl, error_decl)
+  obj: Either(struct_decl, union_decl, enum_decl, error_decl)
 })
 //>>>>>>>>>>>>>>>>>>>>>>
 .map(({doc, pub, ident, obj}) => (obj as Declaration)

@@ -193,6 +193,18 @@ export class VariableDeclaration extends Declaration {
     return `${this.name}${reJoin(this.type, ': ')}`
   }
 
+  /**
+   * Resolve the type of this expression.
+   * This may have to go fetch the value first.
+   * Used to modify the getMembers to take into account
+   * if it is a pointer, option, maybe error or array so that
+   * the members show '*', '?', whatever an error completes to or 'len',
+   * or nothing if the current type resolves to a function type
+   */
+  getType(): Declaration | null {
+    return null
+  }
+
   getMembers(as_type = false): Declaration[] {
     // look first at the type. If we find it, then return its definition.
     var typ = this.parent!.resolveExpression(this.type)
@@ -320,10 +332,13 @@ export class FunctionDeclaration extends Scope {
     return `${this.name}(${this.args.map(a => a.fullName()).join(', ')})${reJoin(this.return_type, ': ')}`
   }
 
-  getMembers() {
-    var typ = this.parent!.resolveExpression(this.return_type)
-    if (!typ) return []
-    return typ.getMembers(true)
+  getMembers(as_type = false) {
+    if (as_type) {
+      var typ = this.parent!.resolveExpression(this.return_type)
+      if (!typ) return []
+      return typ.getMembers(true)
+    }
+    return super.getMembers()
   }
 }
 
