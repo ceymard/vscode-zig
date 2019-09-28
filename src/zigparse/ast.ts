@@ -3,7 +3,16 @@ import { Lexeme, Opt, Balanced, any, Z, Either, Seq, separated_by, third, T, Tok
 
 export const ident = Token(T.IDENT).map(i => i.str.replace(/@"/, '').replace(/"$/, ''))
 
-type LookupFn = (from_decl: Declaration, only_public: boolean) => { decl: Declaration | null, pubs: boolean }
+// getMembers is wrong for a scope as it has no members.
+// a scope only serves to resolve a declaration.
+// the problem is mainly because functions / enums are scopes but are also **values**
+// I Should create the file scope
+
+// first, it's get variable by name
+// then, we go along the member chain
+
+// getMembers() is used when something is used as a value.
+// getInstanceMembers() is only used on containers.
 
 /**
  * A resolvable expression, where operators are ignored and we only care about
@@ -24,12 +33,19 @@ const modified_ident = SeqObj({
 })
 
 // const star = ;
-
 const potential_fncall = SeqObj({
   id: modified_ident,
   is_fn: Opt(Balanced('(', any, ')')),
 }).map(({id, is_fn}) => (from_decl: Declaration, only_public: boolean) => {
-  const {decl, pubs} = id(from_decl, only_public)
+  var {decl, pubs} = id(from_decl, only_public)
+
+  if (is_fn && decl && decl.is(FunctionDeclaration)) {
+    // fake variable declaration
+    decl = new VariableDeclaration()
+      .set('type', decl.return_type)
+      .set('file', decl.file)
+      .set('parent', decl.parent)
+  }
   // FIXME : should check for function call. but we would need to know if being called from a value
   // or not.
   return { pubs, decl: decl}
@@ -64,7 +80,7 @@ export const resolvable_outer_expr = SeqObj({
   _err: Opt(Seq(any, '!')),
   lst: separated_by('.', Either(cimport, impor, potential_fncall)),
 }).map(({lst}) => {
-  return (decl: Declaration): Declaration | null => {
+  return (decl: Scope): Declaration | null => {
     if (lst.length === 0) return null
     var resolve = (decl: Declaration, pubs: boolean, index: number): Declaration | null => {
       var res = lst[index](decl, pubs)
@@ -72,7 +88,7 @@ export const resolvable_outer_expr = SeqObj({
       if (index === lst.length - 1) return res.decl
       return resolve(res.decl, res.pubs, index + 1)
     }
-    return resolve(decl, false, 0)
+    return resolve(new FakeScopeResolver(decl), false, 0)
   }
 })
 
@@ -145,7 +161,7 @@ export class Declaration extends PositionedElement {
    * For variables, returns the list of .names
    *
   */
-  getMembers(as_type = false): Declaration[] {
+  getMembers(): Declaration[] {
     return []
   }
 
@@ -202,19 +218,40 @@ export class VariableDeclaration extends Declaration {
    * or nothing if the current type resolves to a function type
    */
   getType(): Declaration | null {
+
+    if (this.type) {
+      var typ = this.parent!.resolveExpression(this.type)
+      while (typ instanceof VariableDeclaration) {
+        typ = typ.parent!.resolveExpression(typ.value)
+      }
+
+      // found it, maybe ?
+      return typ
+    }
+
+    // yeah, didn't find it.
     return null
   }
 
-  getMembers(as_type = false): Declaration[] {
-    // look first at the type. If we find it, then return its definition.
-    var typ = this.parent!.resolveExpression(this.type)
-    if (typ) return typ.getMembers(true)
+  getMembers(): Declaration[] {
+    // look first at the type. If we find it, then return its instance members.
+    // This is probably the place where we need to find out if the type is actually
+    // an array, an error or something else, so
+    // FIXME
 
-    // At last, just look at the value, try to resolve it and print its members.
-    var val = this.parent!.resolveExpression(this.value)
-    if (!val) return []
+    // as long as we have a declaration, but as long as it's not a
+    var typ = this.getType()
+    if (typ && typ instanceof MemberedContainer) {
+      return typ.getInstanceMembers()
+    }
 
-    return val.getMembers(as_type)
+    if (this.value) {
+      var val = this.parent!.resolveExpression(this.value)
+      if (val)
+        return val.getMembers()
+    }
+
+    return []
   }
 
 }
@@ -261,8 +298,8 @@ export class Scope extends Declaration {
       d.setFile(f)
   }
 
-  getMembers() {
-    return this.getDeclarations()
+  getMembers(): Declaration[] {
+    return []
   }
 
   getDeclarations(): Declaration[] {
@@ -288,6 +325,15 @@ export class Scope extends Declaration {
     return exp(this)
   }
 
+}
+
+
+export class FileDeclaration extends Scope {
+  // it has no name
+
+  getMembers() {
+    return this.getDeclarations()
+  }
 }
 
 
@@ -332,19 +378,15 @@ export class FunctionDeclaration extends Scope {
     return `${this.name}(${this.args.map(a => a.fullName()).join(', ')})${reJoin(this.return_type, ': ')}`
   }
 
-  getMembers(as_type = false) {
-    if (as_type) {
-      var typ = this.parent!.resolveExpression(this.return_type)
-      if (!typ) return []
-      return typ.getMembers(true)
-    }
-    return super.getMembers()
+  getReturnType(): Declaration | null {
+    return this.resolveExpression(this.return_type)
   }
+
 }
 
 
 export class MemberField extends VariableDeclaration {
-
+  is_public = true
 }
 
 export class MemberedContainer extends ContainerDeclaration {
@@ -362,17 +404,18 @@ export class MemberedContainer extends ContainerDeclaration {
   }
 
   getMembers(as_type = false): Declaration[] {
-    if (as_type) {
-      return this.declarations.filter(d => this.isInstanceMember(d))
-    }
-
-    // as value
     return this.declarations.filter(d => !this.isInstanceMember(d))
+  }
+
+  getInstanceMembers() {
+    return this.declarations.filter(d => this.isInstanceMember(d))
   }
 }
 
 
-export class EnumMember extends VariableDeclaration { }
+export class EnumMember extends VariableDeclaration {
+  is_public = true
+}
 
 export class EnumDeclaration extends MemberedContainer {
 
@@ -388,6 +431,20 @@ export class UnionDeclaration extends MemberedContainer {
 
 }
 
+
 export class TestDeclaration extends Scope {
   name: string = ''
+}
+
+
+// Only used in resolver.
+export class FakeScopeResolver extends Declaration {
+  constructor(public scope: Scope) {
+    super()
+    this.file = scope.file
+  }
+
+  getMembers() {
+    return this.scope.getDeclarations()
+  }
 }

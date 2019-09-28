@@ -94,6 +94,7 @@ function printDeclaration(d: Declaration, indent = '') {
     p(c.yellowBright('.' + d.name + c.gray(': ' + lx(d.type))))
   } else if (d.is(FunctionArgumentDeclaration)) {
     // do nothing, they're handled in the function block
+    p(c.green('arg') + ' ' + d.name + ': ' + lx(d.type))
   } else {
     p(c.red.bold('/!\\ ' + d.constructor.name))
   }

@@ -1,6 +1,6 @@
 import { RawRule, Either, Seq, Rule, Z, ZF, Lexeme, Opt, Token, any, Balanced, first, S, second, T, SeqObj, separated_by, Between } from './libparse'
 // import { Variable, Declaration, Enum, Union, ContainerField, Scope, FunctionDecl, Struct } from './pseudo-ast'
-import { Scope, PositionedElement, VariableDeclaration, FunctionDeclaration, StructDeclaration, EnumDeclaration, UnionDeclaration, Position, MemberField, FunctionArgumentDeclaration, Declaration, ErrorIdentifier, ErrorDeclaration, EnumMember, TestDeclaration } from './ast'
+import { Scope, PositionedElement, VariableDeclaration, FunctionDeclaration, StructDeclaration, EnumDeclaration, UnionDeclaration, Position, MemberField, FunctionArgumentDeclaration, Declaration, ErrorIdentifier, ErrorDeclaration, EnumMember, TestDeclaration, FileDeclaration } from './ast'
 
 const mkset = (l: Lexeme[]) => new Set(l.map(l => l.str))
 export const lexemes = (l: any, start: Lexeme, end: Lexeme, input: Lexeme[]) => input.slice(start.input_position, end.input_position + 1)
@@ -36,7 +36,7 @@ const kw_test = 'test'
 
 // const inner_scope = Seq('{', '}')
 
-export const bare_decl_scope = (until: RawRule<any> | null) => () => ZF(
+export const file_scope = (until: RawRule<any> | null) => () => ZF(
   Either(
     container_decl,
     func_decl,
@@ -44,7 +44,7 @@ export const bare_decl_scope = (until: RawRule<any> | null) => () => ZF(
     test,
   ),
   until
-).map((objs) => new Scope()
+).map((objs) => new FileDeclaration()
   .appendDeclarations(objs)
 ).map(set_position)
 

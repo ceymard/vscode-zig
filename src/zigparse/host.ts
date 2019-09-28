@@ -1,5 +1,5 @@
 import { Lexer, Lexeme, T } from "./libparse"
-import { bare_decl_scope, lexemes } from "./parser"
+import { file_scope, lexemes } from "./parser"
 import { Scope, Declaration, MemberField, VariableDeclaration, ContainerDeclaration, FunctionArgumentDeclaration, resolvable_outer_expr } from "./ast"
 import * as w from 'which'
 
@@ -256,7 +256,7 @@ export class ZigHost {
     const lex_hrtime = process.hrtime(start)
 
     start = process.hrtime()
-    const scope = bare_decl_scope(null)().parse(input)!
+    const scope = file_scope(null)().parse(input)!
     const parse_hrtime = process.hrtime(start)
 
     const res = this.files[path] = new File(this, path, lexer, scope, contents, lex_hrtime, parse_hrtime)
