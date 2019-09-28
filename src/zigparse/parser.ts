@@ -269,6 +269,7 @@ const container_decl: Rule<Declaration> = SeqObj({
   qualifiers,
   ident,
   _: '=',
+  _ignored: Z(Seq('if', Balanced('(', any, ')'))),
   obj: Either(struct_decl, union_decl, enum_decl, error_decl)
 })
 //>>>>>>>>>>>>>>>>>>>>>>
