@@ -1,6 +1,6 @@
 import { RawRule, Either, Seq, Rule, Z, ZF, Lexeme, Opt, Token, any, Balanced, first, S, second, T, SeqObj, separated_by, Between } from './libparse'
 // import { Variable, Declaration, Enum, Union, ContainerField, Scope, FunctionDecl, Struct } from './pseudo-ast'
-import { Scope, PositionedElement, VariableDeclaration, FunctionDeclaration, StructDeclaration, EnumDeclaration, UnionDeclaration, Position, MemberField, FunctionArgumentDeclaration, Declaration, ErrorIdentifier, ErrorDeclaration, EnumMember } from './ast'
+import { Scope, PositionedElement, VariableDeclaration, FunctionDeclaration, StructDeclaration, EnumDeclaration, UnionDeclaration, Position, MemberField, FunctionArgumentDeclaration, Declaration, ErrorIdentifier, ErrorDeclaration, EnumMember, TestDeclaration } from './ast'
 
 const mkset = (l: Lexeme[]) => new Set(l.map(l => l.str))
 export const lexemes = (l: any, start: Lexeme, end: Lexeme, input: Lexeme[]) => input.slice(start.input_position, end.input_position + 1)
@@ -32,6 +32,7 @@ const kw_enum = 'enum'
 const kw_struct = 'struct'
 const kw_union = 'union'
 const kw_error = 'error'
+const kw_test = 'test'
 
 // const inner_scope = Seq('{', '}')
 
@@ -39,7 +40,8 @@ export const bare_decl_scope = (until: RawRule<any> | null) => () => ZF(
   Either(
     container_decl,
     func_decl,
-    var_decl
+    var_decl,
+    test,
   ),
   until
 ).map((objs) => new Scope()
@@ -116,6 +118,17 @@ const control_struct = SeqObj({
   return scope
 }).map(set_position)
 
+
+const test = SeqObj({
+        kw_test,
+  name: T.STR,
+  body: Balanced('{', any, '}')
+})
+.map(({name, body}) =>
+  new TestDeclaration()
+  .set('name', name.str)
+)
+.map(set_position)
 
 const enum_member = SeqObj({
   doc,

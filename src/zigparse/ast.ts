@@ -350,22 +350,24 @@ export class MemberField extends VariableDeclaration {
 export class MemberedContainer extends ContainerDeclaration {
   // members:
 
+  isInstanceMember(d: Declaration) {
+    if (d instanceof MemberField) return true
+    if (d instanceof FunctionDeclaration) {
+      if (d.args.length > 0) {
+        var first_arg = d.args[0]
+        return d.resolveExpression(first_arg.type) === this
+      }
+    }
+    return false
+  }
+
   getMembers(as_type = false): Declaration[] {
     if (as_type) {
-      return this.declarations.filter(d => {
-        if (d instanceof MemberField) return true
-        if (d instanceof FunctionDeclaration) {
-          if (d.args.length > 0) {
-            var first_arg = d.args[0]
-            return d.resolveExpression(first_arg.type) === this
-          }
-        }
-        return false
-      })
+      return this.declarations.filter(d => this.isInstanceMember(d))
     }
 
     // as value
-    return this.declarations.filter(d => !(d instanceof MemberField))
+    return this.declarations.filter(d => !this.isInstanceMember(d))
   }
 }
 
@@ -384,4 +386,8 @@ export class StructDeclaration extends MemberedContainer {
 
 export class UnionDeclaration extends MemberedContainer {
 
+}
+
+export class TestDeclaration extends Scope {
+  name: string = ''
 }
