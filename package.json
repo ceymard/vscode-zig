@@ -1,14 +1,14 @@
 {
-	"name": "zig",
-	"displayName": "Zig",
-	"description": "Language support for the Zig programming language",
-	"version": "0.2.2",
-	"publisher": "tiehuis",
+	"name": "zig-complete",
+	"displayName": "Zig code completion (js)",
+	"description": "Temporary code completion support for the Zig programming language while waiting for the real zig compiler to do the task",
+	"version": "0.1.0",
+	"publisher": "ceymard",
 	"icon": "images/zig-icon.png",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/zig-lang/vscode-zig"
+		"url": "https://github.com/ceymard/vscode-zig-complete"
 	},
 	"engines": {
 		"vscode": "^1.17.0"
@@ -39,43 +39,8 @@
 		],
 		"configuration": {
 			"type": "object",
-			"title": "zig",
-			"properties": {
-				"zig.buildOption": {
-					"type": "string",
-					"default": "build",
-					"enum": [
-						"build",
-						"build-exe",
-						"build-lib",
-						"build-obj"
-					],
-					"description": "Which build command Zig should use to build the code."
-				},
-				"zig.buildArgs": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					},
-					"default": [],
-					"description": "Extra arguments to passed to Zig."
-				},
-				"zig.buildFilePath": {
-					"type": "string",
-					"default": "${workspaceFolder}/build.zig",
-					"description": "The path to build.zig. This is only required if zig.buildOptions = build."
-				},
-				"zig.zigPath": {
-					"type": "string",
-					"default": null,
-					"description": "Set a custom path to the Zig binary. Defaults to 'zig' in your PATH."
-				},
-				"zig.revealOutputChannelOnFormattingError": {
-					"type": "boolean",
-					"default": true,
-					"description": "Should output channel be reaised on formatting error."
-				}
-			}
+			"title": "zig-complete",
+			"properties": {}
 		}
 	},
 	"scripts": {
@@ -91,14 +56,10 @@
 		"typescript": "^3.6.2",
 		"vscode": "^1.1.33"
 	},
-	"__metadata": {
-		"id": "70493c77-185f-40ad-8132-a3300a446ec2",
-		"publisherDisplayName": "Marc Tiehuis",
-		"publisherId": "29a44536-a9b2-4b9f-818d-bd2e850f091b"
-	},
 	"dependencies": {
 		"@types/chalk": "^2.2.0",
 		"@types/which": "^1.3.1",
+		"chalk": "^2.4.2",
 		"which": "^1.3.1"
 	}
 }
