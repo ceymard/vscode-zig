@@ -123,13 +123,16 @@ export class File {
    * @param file_pos: The 0 based position in the file (not line or column)
    */
   getCompletionsAt(file_pos: number): Declaration[] {
-    const lx = this.lexer.getLexemeAt(file_pos)
+    var lx = this.lexer.getLexemeAt(file_pos)
 
     if (!lx) return []
+    var prev = this.lexer.lexed[lx.input_position - 1]
 
     // If the current token is a dot, then go backwards one step to get the preceding expression.
     // if it is not, then see if we're on an expression and that we want to potentially replace the current token.
-    if (!lx.is('.')) return this.getDeclarationsAt(file_pos) || []
+    if (!lx.is('.') && !prev.is('.')) return this.getDeclarationsAt(file_pos) || []
+    if (prev.is('.')) lx = prev
+
     // FIXME should check .ident as well for completion
 
     const expr = resolvable_outer_expr.tryParse(lx.input_position - 1, this.lexer.lexed, -1)
